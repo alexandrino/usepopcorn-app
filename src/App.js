@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { MovieDetails } from './components/MovieDetails'
+import { MovieDetails } from "./components/MovieDetails";
 import { Navbar } from "./components/Navbar";
 
-
-const { REACT_APP_API_KEY: API_KEY } = process.env;
 const { REACT_APP_API_URL: API_URL } = process.env;
 
-const url = `${API_URL}&apikey=${API_KEY}`
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
@@ -23,42 +20,45 @@ export default function App() {
   const avgUserRating = average(watched.map((movie) => movie.userRating));
   const avgRuntime = average(watched.map((movie) => movie.runtime));
 
-  const handleSelectMovie = (movieId) => setSelectedId(movieId === selectedId ? null : movieId);
+  const handleSelectMovie = (movieId) =>
+    setSelectedId(movieId === selectedId ? null : movieId);
   const handleCloseMovie = () => setSelectedId(null);
 
-  useEffect(function () {
-    async function fetchMovies() {
-      try {
-        setIsLoading(true);
-        setError("");
-        const res = await fetch(`${url}&s=${query}`);
+  useEffect(
+    function () {
+      async function fetchMovies() {
+        try {
+          setIsLoading(true);
+          setError("");
+          const res = await fetch(`${API_URL}&s=${query}`);
 
-        if (!res.ok) {
-          console.log('Fetch.error');
-          throw new Error("Something went wrong with fetching movies");
+          if (!res.ok) {
+            console.log("Fetch.error");
+            throw new Error("Something went wrong with fetching movies");
+          }
+
+          const data = await res.json();
+
+          if (data.Response === "False") {
+            console.log("Fetch.notfound");
+            throw new Error("Movie not found");
+          }
+          setMovies(data.Search);
+        } catch (error) {
+          setError(error.message);
+        } finally {
+          setIsLoading(false);
         }
-
-        const data = await res.json();
-
-        if (data.Response === 'False') {
-          console.log('Fetch.notfound');
-          throw new Error("Movie not found");
-        }
-        setMovies(data.Search);
-
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setIsLoading(false);
       }
-    }
-    if (query.length <= 3) {
-      setMovies([]);
-      setError("");
-      return;
-    }
-    fetchMovies()
-  }, [query]);
+      if (query.length <= 3) {
+        setMovies([]);
+        setError("");
+        return;
+      }
+      fetchMovies();
+    },
+    [query]
+  );
 
   return (
     <>
@@ -66,41 +66,53 @@ export default function App() {
       <main className="main">
         {isLoading && <Loader />}
         {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && <ListMovies movies={movies} onHandleSelectMovie={handleSelectMovie} />}
-        {
-          selectedId ? <MovieDetails selectedId={selectedId} onHandleCloseMovie={handleCloseMovie} /> :
-            <ListMoviesWatched watched={watched} avgImdbRating={avgImdbRating} avgUserRating={avgUserRating} avgRuntime={avgRuntime} />
-        }
-
+        {!isLoading && !error && (
+          <ListMovies movies={movies} onHandleSelectMovie={handleSelectMovie} />
+        )}
+        {selectedId ? (
+          <div className="box">
+            <MovieDetails
+              selectedId={selectedId}
+              onHandleCloseMovie={handleCloseMovie}
+              watched={watched}
+            />
+          </div>
+        ) : (
+          <ListMoviesWatched
+            watched={watched}
+            avgImdbRating={avgImdbRating}
+            avgUserRating={avgUserRating}
+            avgRuntime={avgRuntime}
+          />
+        )}
       </main>
     </>
   );
 }
-
-
 
 const ListMovies = ({ movies, onHandleSelectMovie }) => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="box">
-      <button
-        className="btn-toggle"
-        onClick={() => setIsOpen((open) => !open)}
-      >
+      <button className="btn-toggle" onClick={() => setIsOpen((open) => !open)}>
         {isOpen ? "–" : "+"}
       </button>
 
       {isOpen && (
         <ul className="list list-movies">
           {movies?.map((movie) => (
-            <MovieItem key={movie.imdbID} {...movie} onHandleSelectMovie={onHandleSelectMovie} />
+            <MovieItem
+              key={movie.imdbID}
+              {...movie}
+              onHandleSelectMovie={onHandleSelectMovie}
+            />
           ))}
         </ul>
       )}
     </div>
-  )
-}
+  );
+};
 
 const MovieItem = ({ imdbID, Poster, Title, Year, onHandleSelectMovie }) => {
   return (
@@ -114,18 +126,20 @@ const MovieItem = ({ imdbID, Poster, Title, Year, onHandleSelectMovie }) => {
         </p>
       </div>
     </li>
-  )
-}
+  );
+};
 
-const ListMoviesWatched = ({ watched, avgImdbRating, avgUserRating, avgRuntime }) => {
+const ListMoviesWatched = ({
+  watched,
+  avgImdbRating,
+  avgUserRating,
+  avgRuntime,
+}) => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
     <div className="box">
-      <button
-        className="btn-toggle"
-        onClick={() => setIsOpen((open) => !open)}
-      >
+      <button className="btn-toggle" onClick={() => setIsOpen((open) => !open)}>
         {isOpen ? "–" : "+"}
       </button>
       {isOpen && (
@@ -160,8 +174,8 @@ const ListMoviesWatched = ({ watched, avgImdbRating, avgUserRating, avgRuntime }
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
 const WatchedItem = ({ Poster, Title, imdbRating, userRating, runtime }) => {
   return (
@@ -183,13 +197,12 @@ const WatchedItem = ({ Poster, Title, imdbRating, userRating, runtime }) => {
         </p>
       </div>
     </li>
-  )
-}
+  );
+};
 
 const Loader = () => {
   return <p className="loader">Loading...</p>;
-}
-
+};
 
 const ErrorMessage = ({ message }) => {
   return (
@@ -197,4 +210,4 @@ const ErrorMessage = ({ message }) => {
       <span>⛔️</span> {message}
     </p>
   );
-}
+};
